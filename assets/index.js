@@ -42,6 +42,35 @@
 	        search: fullUrl.slice(idx),
 	    };
 	}
+	const VALID_ROUTE_PREFIXES = [
+	    "/login",
+	    "/register",
+	    "/verify-email",
+	    "/forgot-password",
+	    "/reset-password",
+	    "/dashboard",
+	    "/jobs",
+	    "/profile",
+	    "/study-planner",
+	    "/practice",
+	    "/projects",
+	    "/resources",
+	    "/resume",
+	    "/skill-gap",
+	    "/applications",
+	    "/analytics",
+	    "/settings",
+	    "/tpo",
+	    "/admin-portal",
+	];
+	function isValidAppRoute(path) {
+	    if (!path || path === "/")
+	        return true;
+	    const clean = path.split("?")[0].replace(/\/+$/, "") || "/";
+	    if (clean === "/")
+	        return true;
+	    return VALID_ROUTE_PREFIXES.some((prefix) => clean === prefix || clean.startsWith(`${prefix}/`));
+	}
 	function useHashMode() {
 	    if (typeof window === "undefined")
 	        return false;
@@ -57,20 +86,42 @@
 	function getCurrentLocation() {
 	    if (typeof window === "undefined")
 	        return { pathname: "/", search: "" };
-	    if (useHashMode()) {
-	        const rawHash = window.location.hash ? window.location.hash.slice(1) : "/";
-	        const normalized = rawHash.startsWith("/") ? rawHash : `/${rawHash}`;
-	        return parsePathAndSearch(normalized || "/");
+	    const rawHash = window.location.hash || "";
+	    // If the hash is a route hash like #/login or #/dashboard
+	    if (rawHash.startsWith("#/")) {
+	        const routeCandidate = rawHash.slice(1) || "/";
+	        if (isValidAppRoute(routeCandidate)) {
+	            return parsePathAndSearch(routeCandidate);
+	        }
+	        return { pathname: "/", search: "" };
 	    }
-	    return {
-	        pathname: window.location.pathname || "/",
-	        search: window.location.search || "",
-	    };
+	    // If hash is an in-page section anchor like #features, #about, #contact, #home
+	    if (rawHash.startsWith("#") && rawHash.length > 1) {
+	        return { pathname: "/", search: "" };
+	    }
+	    if (useHashMode()) {
+	        return { pathname: "/", search: "" };
+	    }
+	    const currentPath = window.location.pathname || "/";
+	    if (isValidAppRoute(currentPath)) {
+	        return {
+	            pathname: currentPath,
+	            search: window.location.search || "",
+	        };
+	    }
+	    return { pathname: "/", search: "" };
 	}
 	function BrowserRouter({ children }) {
 	    const [loc, setLoc] = d(() => getCurrentLocation());
 	    y(() => {
 	        const onUrlChange = () => {
+	            const rawHash = window.location.hash || "";
+	            if (rawHash.startsWith("#") && !rawHash.startsWith("#/") && rawHash.length > 1) {
+	                const el = document.getElementById(rawHash.slice(1));
+	                if (el)
+	                    el.scrollIntoView({ behavior: "smooth" });
+	                return;
+	            }
 	            setLoc(getCurrentLocation());
 	        };
 	        window.addEventListener("popstate", onUrlChange);
@@ -89,19 +140,29 @@
 	        const full = parsed.pathname + parsed.search;
 	        if (useHashMode()) {
 	            const targetHash = `#${full.startsWith("/") ? full : `/${full}`}`;
-	            if (options.replace) {
-	                window.history.replaceState({}, "", targetHash);
+	            try {
+	                if (options.replace) {
+	                    window.history.replaceState({}, "", targetHash);
+	                }
+	                else {
+	                    window.location.hash = targetHash;
+	                }
 	            }
-	            else {
-	                window.location.hash = targetHash;
+	            catch {
+	                // Ignore history security errors on sandboxed origins
 	            }
 	        }
 	        else {
-	            if (options.replace) {
-	                window.history.replaceState({}, "", full);
+	            try {
+	                if (options.replace) {
+	                    window.history.replaceState({}, "", full);
+	                }
+	                else {
+	                    window.history.pushState({}, "", full);
+	                }
 	            }
-	            else {
-	                window.history.pushState({}, "", full);
+	            catch {
+	                // Ignore history errors
 	            }
 	        }
 	        setLoc(parsed);
@@ -184,7 +245,8 @@
 	}
 	function Link({ to, children, className = "", onClick, ...rest }) {
 	    const navigate = useNavigate();
-	    return (Rn.createElement("a", { href: to, className: className, onClick: (e) => {
+	    const safeHref = useHashMode() ? `#${String(to).startsWith("/") ? to : `/${to}`}` : to;
+	    return (Rn.createElement("a", { href: safeHref, className: className, onClick: (e) => {
 	            e.preventDefault();
 	            if (onClick)
 	                onClick(e);
@@ -196,7 +258,8 @@
 	    const navigate = useNavigate();
 	    const isActive = pathname === to || (to !== "/" && pathname.startsWith(`${to}/`));
 	    const computedClass = typeof className === "function" ? className({ isActive }) : className || "";
-	    return (Rn.createElement("a", { href: to, className: computedClass, onClick: (e) => {
+	    const safeHref = useHashMode() ? `#${String(to).startsWith("/") ? to : `/${to}`}` : to;
+	    return (Rn.createElement("a", { href: safeHref, className: computedClass, onClick: (e) => {
 	            e.preventDefault();
 	            if (onClick)
 	                onClick(e);
@@ -28742,6 +28805,13 @@
 	            setContactForm({ name: "", email: "", message: "" });
 	        }
 	    };
+	    const scrollToSection = (e, sectionId) => {
+	        e.preventDefault();
+	        const el = document.getElementById(sectionId);
+	        if (el) {
+	            el.scrollIntoView({ behavior: "smooth" });
+	        }
+	    };
 	    return (Rn.createElement("div", { className: "min-h-screen bg-[#F4F5FF] text-[#182044] flex flex-col" },
 	        Rn.createElement("header", { className: "bg-[#111936] text-white border-b border-white/10 sticky top-0 z-40" },
 	            Rn.createElement("div", { className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between" },
@@ -28752,10 +28822,10 @@
 	                        "Placement",
 	                        Rn.createElement("span", { className: "text-[#7C5CFF]" }, "Trace"))),
 	                Rn.createElement("nav", { className: "hidden md:flex items-center gap-7 text-xs font-medium text-slate-300" },
-	                    Rn.createElement("a", { href: "#home", className: "hover:text-white pt-transition" }, "Home"),
-	                    Rn.createElement("a", { href: "#features", className: "hover:text-white pt-transition" }, "Features"),
-	                    Rn.createElement("a", { href: "#about", className: "hover:text-white pt-transition" }, "About"),
-	                    Rn.createElement("a", { href: "#contact", className: "hover:text-white pt-transition" }, "Contact"),
+	                    Rn.createElement("a", { href: "#home", onClick: (e) => scrollToSection(e, "home"), className: "hover:text-white pt-transition" }, "Home"),
+	                    Rn.createElement("a", { href: "#features", onClick: (e) => scrollToSection(e, "features"), className: "hover:text-white pt-transition" }, "Features"),
+	                    Rn.createElement("a", { href: "#about", onClick: (e) => scrollToSection(e, "about"), className: "hover:text-white pt-transition" }, "About"),
+	                    Rn.createElement("a", { href: "#contact", onClick: (e) => scrollToSection(e, "contact"), className: "hover:text-white pt-transition" }, "Contact"),
 	                    Rn.createElement(Link, { to: "/login", className: "hover:text-white pt-transition" }, "Login")),
 	                Rn.createElement("div", { className: "flex items-center gap-3" }, isAuthenticated ? (Rn.createElement(Button, { onClick: () => navigate("/dashboard"), size: "md" },
 	                    "Open Dashboard ",
@@ -28780,7 +28850,7 @@
 	                            Rn.createElement(Button, { size: "lg", onClick: () => navigate(isAuthenticated ? "/dashboard" : "/register"), className: "px-6 py-3 text-sm font-semibold shadow-nav" },
 	                                Rn.createElement("span", null, "Get Started"),
 	                                Rn.createElement(ArrowRight, { className: "w-4 h-4" })),
-	                            Rn.createElement("a", { href: "#features", className: "inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-semibold border border-white/20 text-white hover:bg-white/10 pt-transition" }, "Learn More"))),
+	                            Rn.createElement("a", { href: "#features", onClick: (e) => scrollToSection(e, "features"), className: "inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-semibold border border-white/20 text-white hover:bg-white/10 pt-transition" }, "Learn More"))),
 	                    Rn.createElement("div", { className: "lg:col-span-6 relative" },
 	                        Rn.createElement("div", { className: "relative mx-auto max-w-lg" },
 	                            Rn.createElement("div", { className: "hidden sm:flex items-center gap-2.5 bg-white text-[#182044] px-4 py-2.5 rounded-2xl shadow-xl absolute -top-5 -left-6 z-20 border border-indigo-100" },

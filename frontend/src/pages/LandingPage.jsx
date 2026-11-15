@@ -55,6 +55,14 @@ export default function LandingPage() {
     }
   };
 
+  const scrollToSection = (e, sectionId) => {
+    e.preventDefault();
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F4F5FF] text-[#182044] flex flex-col">
       {/* Top Landing Header */}
@@ -73,16 +81,32 @@ export default function LandingPage() {
           </div>
 
           <nav className="hidden md:flex items-center gap-7 text-xs font-medium text-slate-300">
-            <a href="#home" className="hover:text-white pt-transition">
+            <a
+              href="#home"
+              onClick={(e) => scrollToSection(e, "home")}
+              className="hover:text-white pt-transition"
+            >
               Home
             </a>
-            <a href="#features" className="hover:text-white pt-transition">
+            <a
+              href="#features"
+              onClick={(e) => scrollToSection(e, "features")}
+              className="hover:text-white pt-transition"
+            >
               Features
             </a>
-            <a href="#about" className="hover:text-white pt-transition">
+            <a
+              href="#about"
+              onClick={(e) => scrollToSection(e, "about")}
+              className="hover:text-white pt-transition"
+            >
               About
             </a>
-            <a href="#contact" className="hover:text-white pt-transition">
+            <a
+              href="#contact"
+              onClick={(e) => scrollToSection(e, "contact")}
+              className="hover:text-white pt-transition"
+            >
               Contact
             </a>
             <Link to="/login" className="hover:text-white pt-transition">
@@ -154,6 +178,7 @@ export default function LandingPage() {
                 </Button>
                 <a
                   href="#features"
+                  onClick={(e) => scrollToSection(e, "features")}
                   className="inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-semibold border border-white/20 text-white hover:bg-white/10 pt-transition"
                 >
                   Learn More

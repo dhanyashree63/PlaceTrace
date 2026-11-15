@@ -14,6 +14,37 @@ function parsePathAndSearch(fullUrl = "/") {
   };
 }
 
+const VALID_ROUTE_PREFIXES = [
+  "/login",
+  "/register",
+  "/verify-email",
+  "/forgot-password",
+  "/reset-password",
+  "/dashboard",
+  "/jobs",
+  "/profile",
+  "/study-planner",
+  "/practice",
+  "/projects",
+  "/resources",
+  "/resume",
+  "/skill-gap",
+  "/applications",
+  "/analytics",
+  "/settings",
+  "/tpo",
+  "/admin-portal",
+];
+
+function isValidAppRoute(path) {
+  if (!path || path === "/") return true;
+  const clean = path.split("?")[0].replace(/\/+$/, "") || "/";
+  if (clean === "/") return true;
+  return VALID_ROUTE_PREFIXES.some(
+    (prefix) => clean === prefix || clean.startsWith(`${prefix}/`)
+  );
+}
+
 function useHashMode() {
   if (typeof window === "undefined") return false;
   const host = (window.location?.hostname || "").toLowerCase();
@@ -30,15 +61,34 @@ function useHashMode() {
 
 function getCurrentLocation() {
   if (typeof window === "undefined") return { pathname: "/", search: "" };
-  if (useHashMode()) {
-    const rawHash = window.location.hash ? window.location.hash.slice(1) : "/";
-    const normalized = rawHash.startsWith("/") ? rawHash : `/${rawHash}`;
-    return parsePathAndSearch(normalized || "/");
+  const rawHash = window.location.hash || "";
+
+  // If the hash is a route hash like #/login or #/dashboard
+  if (rawHash.startsWith("#/")) {
+    const routeCandidate = rawHash.slice(1) || "/";
+    if (isValidAppRoute(routeCandidate)) {
+      return parsePathAndSearch(routeCandidate);
+    }
+    return { pathname: "/", search: "" };
   }
-  return {
-    pathname: window.location.pathname || "/",
-    search: window.location.search || "",
-  };
+
+  // If hash is an in-page section anchor like #features, #about, #contact, #home
+  if (rawHash.startsWith("#") && rawHash.length > 1) {
+    return { pathname: "/", search: "" };
+  }
+
+  if (useHashMode()) {
+    return { pathname: "/", search: "" };
+  }
+
+  const currentPath = window.location.pathname || "/";
+  if (isValidAppRoute(currentPath)) {
+    return {
+      pathname: currentPath,
+      search: window.location.search || "",
+    };
+  }
+  return { pathname: "/", search: "" };
 }
 
 export function BrowserRouter({ children }) {
@@ -46,6 +96,12 @@ export function BrowserRouter({ children }) {
 
   useEffect(() => {
     const onUrlChange = () => {
+      const rawHash = window.location.hash || "";
+      if (rawHash.startsWith("#") && !rawHash.startsWith("#/") && rawHash.length > 1) {
+        const el = document.getElementById(rawHash.slice(1));
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+        return;
+      }
       setLoc(getCurrentLocation());
     };
     window.addEventListener("popstate", onUrlChange);
@@ -65,16 +121,24 @@ export function BrowserRouter({ children }) {
     const full = parsed.pathname + parsed.search;
     if (useHashMode()) {
       const targetHash = `#${full.startsWith("/") ? full : `/${full}`}`;
-      if (options.replace) {
-        window.history.replaceState({}, "", targetHash);
-      } else {
-        window.location.hash = targetHash;
+      try {
+        if (options.replace) {
+          window.history.replaceState({}, "", targetHash);
+        } else {
+          window.location.hash = targetHash;
+        }
+      } catch {
+        // Ignore history security errors on sandboxed origins
       }
     } else {
-      if (options.replace) {
-        window.history.replaceState({}, "", full);
-      } else {
-        window.history.pushState({}, "", full);
+      try {
+        if (options.replace) {
+          window.history.replaceState({}, "", full);
+        } else {
+          window.history.pushState({}, "", full);
+        }
+      } catch {
+        // Ignore history errors
       }
     }
     setLoc(parsed);
@@ -198,9 +262,10 @@ export function Navigate({ to, replace = false }) {
 
 export function Link({ to, children, className = "", onClick, ...rest }) {
   const navigate = useNavigate();
+  const safeHref = useHashMode() ? `#${String(to).startsWith("/") ? to : `/${to}`}` : to;
   return (
     <a
-      href={to}
+      href={safeHref}
       className={className}
       onClick={(e) => {
         e.preventDefault();
@@ -221,10 +286,11 @@ export function NavLink({ to, children, className, onClick, ...rest }) {
     pathname === to || (to !== "/" && pathname.startsWith(`${to}/`));
   const computedClass =
     typeof className === "function" ? className({ isActive }) : className || "";
+  const safeHref = useHashMode() ? `#${String(to).startsWith("/") ? to : `/${to}`}` : to;
 
   return (
     <a
-      href={to}
+      href={safeHref}
       className={computedClass}
       onClick={(e) => {
         e.preventDefault();
