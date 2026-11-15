@@ -161,8 +161,13 @@ async function buildFrontend() {
 
   fs.writeFileSync(path.join(ASSETS_DIR, "index.js"), output[0].code, "utf8");
 
-  console.log("[3/3] Writing production index.html...");
-  const html = `<!doctype html>
+  const ROOT_ASSETS_DIR = path.join(ROOT_DIR, "assets");
+  fs.mkdirSync(ROOT_ASSETS_DIR, { recursive: true });
+  fs.writeFileSync(path.join(ROOT_ASSETS_DIR, "index.css"), cssResult.css, "utf8");
+  fs.writeFileSync(path.join(ROOT_ASSETS_DIR, "index.js"), output[0].code, "utf8");
+
+  console.log("[3/3] Writing production index.html files...");
+  const makeHtml = (assetPrefix = "./assets") => `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -171,15 +176,17 @@ async function buildFrontend() {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/assets/index.css" />
+    <link rel="stylesheet" href="${assetPrefix}/index.css" />
   </head>
   <body class="bg-[#F4F5FF] text-[#182044] antialiased selection:bg-[#6555F5] selection:text-white">
     <div id="root"></div>
-    <script src="/assets/index.js"></script>
+    <script src="${assetPrefix}/index.js"></script>
   </body>
 </html>`;
 
-  fs.writeFileSync(path.join(DIST_DIR, "index.html"), html, "utf8");
+  fs.writeFileSync(path.join(DIST_DIR, "index.html"), makeHtml("./assets"), "utf8");
+  fs.writeFileSync(path.join(ROOT_DIR, "index.html"), makeHtml("./assets"), "utf8");
+  fs.writeFileSync(path.join(FRONTEND_DIR, "index.html"), makeHtml("./dist/assets"), "utf8");
   console.log("Frontend build completed successfully!");
 }
 

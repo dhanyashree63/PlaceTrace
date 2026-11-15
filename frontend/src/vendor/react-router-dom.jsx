@@ -14,21 +14,46 @@ function parsePathAndSearch(fullUrl = "/") {
   };
 }
 
-export function BrowserRouter({ children }) {
-  const [loc, setLoc] = useState(() => ({
+function useHashMode() {
+  if (typeof window === "undefined") return false;
+  const host = (window.location?.hostname || "").toLowerCase();
+  const proto = window.location?.protocol || "";
+  const path = window.location?.pathname || "";
+  return (
+    proto === "file:" ||
+    path.endsWith(".html") ||
+    host.includes("githack.com") ||
+    host.includes("github.io") ||
+    host.includes("githubusercontent.com")
+  );
+}
+
+function getCurrentLocation() {
+  if (typeof window === "undefined") return { pathname: "/", search: "" };
+  if (useHashMode()) {
+    const rawHash = window.location.hash ? window.location.hash.slice(1) : "/";
+    const normalized = rawHash.startsWith("/") ? rawHash : `/${rawHash}`;
+    return parsePathAndSearch(normalized || "/");
+  }
+  return {
     pathname: window.location.pathname || "/",
     search: window.location.search || "",
-  }));
+  };
+}
+
+export function BrowserRouter({ children }) {
+  const [loc, setLoc] = useState(() => getCurrentLocation());
 
   useEffect(() => {
-    const onPopState = () => {
-      setLoc({
-        pathname: window.location.pathname || "/",
-        search: window.location.search || "",
-      });
+    const onUrlChange = () => {
+      setLoc(getCurrentLocation());
     };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
+    window.addEventListener("popstate", onUrlChange);
+    window.addEventListener("hashchange", onUrlChange);
+    return () => {
+      window.removeEventListener("popstate", onUrlChange);
+      window.removeEventListener("hashchange", onUrlChange);
+    };
   }, []);
 
   const navigate = useCallback((to, options = {}) => {
@@ -38,10 +63,19 @@ export function BrowserRouter({ children }) {
     }
     const parsed = parsePathAndSearch(String(to));
     const full = parsed.pathname + parsed.search;
-    if (options.replace) {
-      window.history.replaceState({}, "", full);
+    if (useHashMode()) {
+      const targetHash = `#${full.startsWith("/") ? full : `/${full}`}`;
+      if (options.replace) {
+        window.history.replaceState({}, "", targetHash);
+      } else {
+        window.location.hash = targetHash;
+      }
     } else {
-      window.history.pushState({}, "", full);
+      if (options.replace) {
+        window.history.replaceState({}, "", full);
+      } else {
+        window.history.pushState({}, "", full);
+      }
     }
     setLoc(parsed);
     window.scrollTo({ top: 0, behavior: "smooth" });

@@ -1,4 +1,18 @@
+import { handleOfflineApi } from "./offlineEngine";
+
 const API_BASE = import.meta.env?.VITE_API_BASE_URL || "/api";
+
+function isStaticHost() {
+  if (typeof window === "undefined") return false;
+  const host = (window.location?.hostname || "").toLowerCase();
+  const proto = window.location?.protocol || "";
+  return (
+    proto === "file:" ||
+    host.includes("githack.com") ||
+    host.includes("github.io") ||
+    host.includes("githubusercontent.com")
+  );
+}
 
 export function getStoredTokens() {
   try {
@@ -18,6 +32,10 @@ export function setStoredTokens(tokens) {
 }
 
 export async function apiRequest(endpoint, options = {}) {
+  if (isStaticHost()) {
+    return handleOfflineApi(endpoint, options);
+  }
+
   const tokens = getStoredTokens();
   const headers = {
     ...(options.isFormData ? {} : { "Content-Type": "application/json" }),
@@ -27,13 +45,23 @@ export async function apiRequest(endpoint, options = {}) {
 
   const url = endpoint.startsWith("http") ? endpoint : `${API_BASE}${endpoint}`;
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch {
+    return handleOfflineApi(endpoint, options);
+  }
 
   if (response.status === 204) {
     return null;
+  }
+
+  const contentType = response.headers?.get?.("content-type") || "";
+  if ((response.status === 404 || response.status === 405) && !contentType.includes("application/json")) {
+    return handleOfflineApi(endpoint, options);
   }
 
   let data = null;
