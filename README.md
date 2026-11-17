@@ -8,8 +8,6 @@
 [![FastAPI](https://img.shields.io/badge/ML%20Service-FastAPI%20%2B%20scikit--learn-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/License-MIT-32B67A)](LICENSE)
 
-**Live Demo Preview:** [https://rawcdn.githack.com/dhanyashree63/PlaceTrace/main/index.html](https://rawcdn.githack.com/dhanyashree63/PlaceTrace/main/index.html)
-
 ---
 
 ## 📌 Overview
