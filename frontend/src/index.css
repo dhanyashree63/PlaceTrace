@@ -15,6 +15,97 @@
   transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Dynamic Keyframes & Motion Animations */
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+}
+
+@keyframes float-reverse {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(12px) rotate(-1deg);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-float-slow {
+  animation: float-slow 5s ease-in-out infinite;
+}
+
+.animate-float-reverse {
+  animation: float-reverse 6s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 7s ease-in-out infinite;
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 28s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+.gradient-text-animated {
+  background: linear-gradient(135deg, #7C5CFF 0%, #6555F5 35%, #38BDF8 70%, #7C5CFF 100%);
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 6s linear infinite;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
