@@ -105,9 +105,3 @@ npm run dev
 ```
 
 ---
-
-## 👩‍💻 Author & Contribution
-
-Developed by **Dhanyashree N**  
-- **GitHub:** [@dhanyashree63](https://github.com/dhanyashree63)
-- **Project Repository:** [PlaceTrace](https://github.com/dhanyashree63/PlaceTrace)
